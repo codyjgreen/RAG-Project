@@ -211,6 +211,7 @@ This section is the rubric in disguise. Your **problem statement** (one paragrap
 8. **Persistence** — documents, embeddings, and chat history survive a restart (real DB).
 9. **Runs from the README** — a teammate (or mentor) can follow your setup steps to run the full app — frontend, API, Postgres/pgvector, Ollama — on their own machine. (A one-command Docker setup is an optional stretch; see [Deployment & demo](#10-deployment--demo).)
 10. **README** — setup, architecture diagram, model choices, screenshots, team credits.
+11. **Show-your-work artifacts** — because this app runs locally rather than at a public URL, your repo *is* your portfolio piece. Every team commits, into the repo: (a) a **short demo recording** — a 60–90 second GIF or a linked video walking through upload → question → cited answer → an "I don't know" moment; and (b) **annotated screenshots** of the key screens embedded in the README. These are what an apprentice points a recruiter to, so treat them as a deliverable, not an afterthought.
 
 ### AI-specific quality bar
 - **No leaked secrets** — config lives in env vars; `.env` is never committed (`.env.example` is).
@@ -232,6 +233,9 @@ No training or fine-tuning, no agents/tool-use, no multi-modal (images/audio), n
 - One technical challenge (chunking, retrieval quality, prompt design…) and how you solved it
 - A look at your evaluation: how you know the answers are decent
 - Retro: what went well, what you'd do differently, what you'd build next
+
+### Talking about this in an interview
+This project is built so you can speak to it credibly. Don't just say "I built a RAG app" — point to the artifacts and the decisions behind them: the demo recording shows it working, the Git history and PRs show how you worked as a team, and your `docs/eval.md` shows you can *measure* an AI system, not just vibe-check it. Be ready to answer "how did you stop it from hallucinating?" (grounding + citations + "I don't know"), "how did you improve answer quality?" (your eval loop and what you tuned), and "what would you do with more time?" (your stretch goals). Those three questions come up constantly, and a deployed link can't answer any of them — your repo and your demo can.
 
 ---
 
@@ -270,4 +274,61 @@ Showing this in your presentation — *"we changed chunk size from 1000 to 400 t
 
 | Day | Focus | Outcome |
 |-----|-------|---------|
-| 6 | Authentica
+| 6 | Authentication + per-user document scoping | Users register/login; see only their docs |
+| 7 | Real upload + ingestion (PDF parsing, chunking strategy, batch embedding) | Users upload their own docs end-to-end |
+| 8 | Citations in the UI + "I don't know" on low-relevance retrieval | Answers show sources; out-of-scope questions refused |
+| 9 | Chat UX: history, loading states, error handling, responsive layout | App feels usable, not just functional |
+| 10 | **Mid-project demo + feedback**; build the 8–10 question eval set; mid-point retro | Feedback logged as issues; eval baseline captured |
+
+### Week 3 — Polish, harden, present
+*Stop adding, start finishing.*
+
+| Day | Focus | Outcome |
+|-----|-------|---------|
+| 11 | Improve retrieval/answer quality with the eval set (tune chunk size, top-k, prompt) or a stretch goal | Measurable bump on the eval set |
+| 12 | Testing pass + fix top bugs; verify config/secret handling | Tests green in CI; no leaked secrets |
+| 13 | **Feature freeze** EOD; finish README, architecture diagram, screenshots, **demo recording**, model rationale | Docs + show-your-work artifacts done; no new features after this |
+| 14 | Build slides, rehearse the demo on the running app (including the "I don't know" moment) | Dry-run done, timing under 10 min |
+| 15 | **Presentations + final retro** | Demos delivered; retros written up |
+
+---
+
+## 9. Team roles
+
+Rotate these weekly so one person doesn't own all the Git/setup work:
+- **Scrum lead** — runs standup, keeps the board honest.
+- **Repo/DevOps owner** — guards `main`, owns CI and keeps the README setup steps accurate on a fresh checkout.
+- **Frontend lead** — owns the chat/upload UI and responsive layout.
+- **AI/backend lead** — owns the ingestion pipeline, retrieval, and prompt design.
+
+Everyone writes code, reviews PRs, and presents. The hats just keep things from slipping.
+
+---
+
+## 10. Deployment & demo
+
+Because the model runs locally through Ollama, "deployed" means something specific for this project:
+
+**The MVP bar is "runs from the README":** a teammate or mentor can clone the repo, follow your setup steps, and run the full app — frontend, API, Postgres/pgvector, Ollama — on their own machine. You'll demo from a laptop running the stack locally. Keep your setup instructions accurate and test them on a fresh checkout; "works on my machine" is the bug this requirement exists to catch.
+
+Since there's no public URL, **your repo is your portfolio piece** (see requirement #11): a committed demo recording and annotated screenshots are what an apprentice actually points a recruiter to. Make them good.
+
+**Optional — Docker Compose (stretch):** wrap the stack in a `docker-compose.yml` so the whole thing comes up with one command. This is a genuinely valuable skill, but it has real week-1 cost (container networking to a host-run Ollama, the pgvector image, volumes), so treat it as a bonus once the MVP runs locally — not a starting requirement.
+
+**Optional — cloud deploy (stretch):** deploy the React frontend (Netlify/Vercel) and the Flask API + Postgres (Render/Railway) for a public URL. The catch: hosting an 8B model in the cloud needs a paid GPU instance, so the cloud build would still call an Ollama instance on a team machine (exposed via a secure tunnel like `cloudflared`) — or you swap your `generate()`/`embed()` interface to a hosted API for the hosted version. A bonus, not the bar.
+
+Whichever path: **get it running end-to-end in week 1.** Debugging the pipeline is cheap early and expensive the night before demos.
+
+---
+
+## 11. Git & team workflow
+
+The Git workflow, branching strategy, PR process, code review norms, CI expectations, and definition of done all live in **[`CONTRIBUTING.md`](./CONTRIBUTING.md)**. Read it on day one — this part is graded as much as the app.
+
+This repo is itself an example of the hygiene we're asking for: a clear README, a contributing guide, a `.gitignore`, an `.env.example` (never a real `.env`), PR and issue templates. Keep it that way as you build.
+
+---
+
+*This is a starting template — mentors should adjust the menu, timeline, and rigor to match the cohort's strength and available support.*
+
+### Week 1 — Foundation
