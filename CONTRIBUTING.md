@@ -71,7 +71,7 @@ Aiming for the *habit*, not exhaustive coverage:
 ## Definition of Done
 A task is done when **all** of these are true:
 - Code is merged to `main` via a reviewed PR
-- It runs correctly via `docker compose up`
+- It runs correctly following the README setup steps (local dev servers)
 - Tests for it pass in CI
 - It introduces no known regressions in existing features
 - No secrets committed; README/docs updated as needed
@@ -96,5 +96,4 @@ git push -u origin feature/pdf-ingestion
 # open a PR on GitHub, get a review, merge, then:
 git checkout main
 git pull
-git branch -d feature/pdf-ingestion
-```
+git branch 

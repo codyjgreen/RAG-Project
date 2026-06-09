@@ -67,7 +67,7 @@ The stack is locked so mentors can support every team and teams can help each ot
 | Embeddings | **Ollama → `nomic-embed-text`** | Local, free. 768-dimension vectors → `vector(768)` column in pgvector. |
 | LLM | **Ollama → `llama3.1:8b`** (or `llama3.2`) | Local, free. Runs the generation step. |
 | Auth | **Flask-Bcrypt** + sessions/JWT | Hash passwords; users see only their own docs. |
-| Orchestration | **Docker Compose** | One command spins up frontend, backend, Postgres/pgvector, and connects to Ollama. |
+| Running it | **Local dev servers** | Run the Vite, Flask, Postgres, and Ollama processes directly on your machine. Docker is an optional stretch (see [Deployment & demo](#10-deployment--demo)). |
 
 > **Architecture rule:** put your model calls behind a single `generate(prompt)` and `embed(text)` interface. Today they call Ollama; swapping to a hosted API later becomes a one-file change. That abstraction is itself a good engineering lesson — and worth pointing out in your demo.
 
@@ -109,27 +109,41 @@ Apple Silicon Macs share memory between the CPU and GPU ("unified memory"), so t
 
 ## 4. Quick start
 
-> Prerequisites: [Docker](https://www.docker.com/) + Docker Compose, and [Ollama](https://ollama.com/download) installed locally.
+> Prerequisites: [Node.js](https://nodejs.org/) (18+), [Python](https://www.python.org/) (3.11+), [Postgres](https://postgresapp.com/) with the [pgvector](https://github.com/pgvector/pgvector) extension, and [Ollama](https://ollama.com/download) — all installed locally. No Docker required.
 
 ```bash
 # 1. Clone your team's repo
 git clone <your-team-repo-url>
 cd <your-team-repo>
 
-# 2. Pull the models (one time, a few GB)
+# 2. Pull the models (one time, a few GB) — Ollama runs as a local service
 ollama pull llama3.1:8b
 ollama pull nomic-embed-text
 
 # 3. Copy env template and fill in values
 cp .env.example .env
 
-# 4. Bring everything up
-docker compose up --build
+# 4. Create the database and enable pgvector (one time)
+createdb ragdb
+psql ragdb -c "CREATE EXTENSION IF NOT EXISTS vector;"
+
+# 5. Start the backend (terminal 1)
+cd server
+python -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+flask run                       # http://localhost:5000
+
+# 6. Start the frontend (terminal 2)
+cd client
+npm install
+npm run dev                     # http://localhost:5173
 ```
 
-Frontend at `http://localhost:5173`, API at `http://localhost:5000`, Postgres on `5432`, Ollama on `11434`.
+Ollama serves on `11434` and Postgres on `5432` by default. You'll run the frontend and backend in two terminals during development.
 
-> The Docker Compose file, app folders, and starter pipeline are **yours to build** — this repo ships the requirements and workflow, and your first issues are to scaffold them. See the suggested structure below.
+> The app folders, dependency files, and starter pipeline are **yours to build** — this repo ships the requirements and workflow, and your first issues are to scaffold them. See the suggested structure below.
+>
+> *Prefer one command?* Wrapping all of this in Docker Compose is an optional stretch goal — see [Deployment & demo](#10-deployment--demo).
 
 ### Suggested repo structure
 ```
@@ -138,7 +152,7 @@ Frontend at `http://localhost:5173`, API at `http://localhost:5000`, Postgres on
 ├── CONTRIBUTING.md      ← Git & team workflow — read this
 ├── .env.example         ← copy to .env; documents required config
 ├── .gitignore
-├── docker-compose.yml   ← you create this in week 1
+├── docker-compose.yml   ← optional (stretch goal)
 ├── client/              ← React app (Vite)
 │   └── ...
 ├── server/              ← Flask API
@@ -195,7 +209,7 @@ This section is the rubric in disguise. Your **problem statement** (one paragrap
 6. **Authentication** — sign up / log in; each user sees only their own documents and chats. Passwords hashed.
 7. **A real frontend** — chat UI with history, a document manager (upload/list/delete), loading and error states, responsive layout.
 8. **Persistence** — documents, embeddings, and chat history survive a restart (real DB).
-9. **One-command run** — `docker compose up` brings the whole app up on any machine (see [Deployment & demo](#10-deployment--demo)).
+9. **Runs from the README** — a teammate (or mentor) can follow your setup steps to run the full app — frontend, API, Postgres/pgvector, Ollama — on their own machine. (A one-command Docker setup is an optional stretch; see [Deployment & demo](#10-deployment--demo).)
 10. **README** — setup, architecture diagram, model choices, screenshots, team credits.
 
 ### AI-specific quality bar
@@ -205,7 +219,7 @@ This section is the rubric in disguise. Your **problem statement** (one paragrap
 - **Sensible resource use** — reasonable chunk sizes and top-k; graceful handling when Ollama is slow or unavailable.
 
 ### Stretch goals (only after the MVP runs)
-Streaming responses (token-by-token), conversation memory / follow-ups, hybrid search (keyword + vector), re-ranking retrieved chunks, multi-document Q&A, page-level PDF citations, an eval dashboard, or a model picker that compares `llama3.1` vs `llama3.2` answers.
+Streaming responses (token-by-token), conversation memory / follow-ups, hybrid search (keyword + vector), re-ranking retrieved chunks, multi-document Q&A, page-level PDF citations, an eval dashboard, a model picker that compares `llama3.1` vs `llama3.2` answers, or **containerizing the whole stack with Docker Compose** so it runs with one command.
 
 ### Out of scope
 No training or fine-tuning, no agents/tool-use, no multi-modal (images/audio), no payments. (That's for the AI program.)
@@ -245,28 +259,15 @@ Showing this in your presentation — *"we changed chunk size from 1000 to 400 t
 |-----|-------|---------|
 | 1 | Kickoff, team norms, pick project/corpus, problem statement; learn the RAG flow | Repo + README started, roles assigned |
 | 2 | Design the ingestion pipeline & API; data modeling (docs, chunks, embeddings); write issues | ERD + ~15 issues on the board |
-| 3 | Scaffold Flask + React + `docker compose`; get **one document chunked and embedded** into pgvector via Ollama | Vectors land in the DB |
+| 3 | Scaffold Flask + React + local Postgres/pgvector; get **one document chunked and embedded** into pgvector via Ollama | Vectors land in the DB |
 | 4 | First retrieval + LLM call: question in → top-k chunks → grounded answer from Ollama | End-to-end answer works locally |
-| 5 | Wire it to a minimal React chat UI; **`docker compose up` runs the whole thing**; CI green | One-command app answers a question over one seeded doc, with a citation |
+| 5 | Wire it to a minimal React chat UI; **the app runs end-to-end locally** from the README steps; CI green | App answers a question over one seeded doc, with a citation |
 
-> **The most important milestone is end of Week 1: a one-command app that answers one question over one document, with a citation.** Teams that defer the Ollama/vector plumbing to week three lose the demo to a config error at 11pm.
+> **The most important milestone is end of Week 1: an app that answers one question over one document, with a citation.** Teams that defer the Ollama/vector plumbing to week three lose the demo to a config error at 11pm.
 
 ### Week 2 — Core feature build
 *Real ingestion, real UI, grounding you can trust.*
 
 | Day | Focus | Outcome |
 |-----|-------|---------|
-| 6 | Authentication + per-user document scoping | Users register/login; see only their docs |
-| 7 | Real upload + ingestion (PDF parsing, chunking strategy, batch embedding) | Users upload their own docs end-to-end |
-| 8 | Citations in the UI + "I don't know" on low-relevance retrieval | Answers show sources; out-of-scope questions refused |
-| 9 | Chat UX: history, loading states, error handling, responsive layout | App feels usable, not just functional |
-| 10 | **Mid-project demo + feedback**; build the 8–10 question eval set; mid-point retro | Feedback logged as issues; eval baseline captured |
-
-### Week 3 — Polish, harden, present
-*Stop adding, start finishing.*
-
-| Day | Focus | Outcome |
-|-----|-------|---------|
-| 11 | Improve retrieval/answer quality with the eval set (tune chunk size, top-k, prompt) or a stretch goal | Measurable bump on the eval set |
-| 12 | Testing pass + fix top bugs; verify config/secret handling | Tests green in CI; no leaked secrets |
-| 13 | **Feature freeze** EOD; README, architecture diagram, scr
+| 6 | Authentica
