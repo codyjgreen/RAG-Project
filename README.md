@@ -161,10 +161,13 @@ Ollama serves on `11434` and Postgres on `5432` by default. You'll run the front
 │   ├── retrieval.py     ← embed query → similarity search
 │   ├── llm.py           ← generate() / embed() behind one interface
 │   └── tests/
-└── docs/
-    ├── ARCHITECTURE.md  ← your architecture diagram + decisions
-    └── eval.md          ← your evaluation set & results
+├── docs/
+│   ├── ARCHITECTURE.md  ← your architecture diagram + decisions
+│   └── eval.md          ← your evaluation set & results
+└── sample-data/         ← example docs to ingest while testing (provided)
 ```
+
+> **Test data is provided.** The [`sample-data/`](./sample-data) folder has example documents (Markdown, text, and a PDF) plus a ready-made evaluation set — use them to validate your ingestion and retrieval before bringing in your own corpus.
 
 ---
 
@@ -248,6 +251,8 @@ This project is built so you can speak to it credibly. Don't just say "I built a
 - **Score answers simply:** correct / partial / wrong / hallucinated, plus "did it cite the right source." A table is fine.
 - **Re-run after changes:** when you tweak chunk size, top-k, or the prompt, re-run the set and see if the score moved. This is the loop the whole AI field runs on.
 
+> **Don't start from a blank page:** [`sample-data/`](./sample-data) ships a ready-made evaluation set (with deliberate out-of-scope questions) over the provided example documents. Use it to validate your pipeline first, then build your own set for your real corpus.
+
 Showing this in your presentation — *"we changed chunk size from 1000 to 400 tokens and accuracy went from 6/10 to 9/10"* — is what separates a real AI project from a demo that happened to work once.
 
 ---
@@ -330,5 +335,3 @@ This repo is itself an example of the hygiene we're asking for: a clear README, 
 ---
 
 *This is a starting template — mentors should adjust the menu, timeline, and rigor to match the cohort's strength and available support.*
-
-### Week 1 — Foundation
