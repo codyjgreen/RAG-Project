@@ -1,8 +1,8 @@
-# RAG Apprentice Project — 3-Week Full-Stack Build
+# RAG Apprentice Project — 4-Week Full-Stack Build
 
 > A starter repo and project brief for apprentice teams building a **Retrieval-Augmented Generation (RAG)** app — "chat with your documents" — using **React + Flask + Ollama**. 100% local, 100% free, no API keys.
 
-**Who this is for:** Apprentices who have just finished the Software Engineering program and are about to start the AI Data Science program. This three-week group project is a visible way to show you're integrating AI into your learning, while practicing a professional software development lifecycle (SDLC) and Git workflow.
+**Who this is for:** Apprentices who have just finished the Software Engineering program and are about to start the AI Data Science program. This four-week group project is a visible way to show you're integrating AI into your learning, while practicing a professional software development lifecycle (SDLC) and Git workflow.
 
 **How to use this repo:** Fork or clone it. The README is your requirements doc and definition of "done." [`CONTRIBUTING.md`](./CONTRIBUTING.md) is your Git and team workflow. Build your app on top of it.
 
@@ -16,7 +16,7 @@
 5. [Project menu — pick one](#5-project-menu--pick-one)
 6. [Requirements / definition of done](#6-requirements--definition-of-done)
 7. [Evaluating your AI](#7-evaluating-your-ai-the-habit-that-matters-most)
-8. [Three-week timeline](#8-three-week-timeline)
+8. [Four-week timeline](#8-four-week-timeline)
 9. [Team roles](#9-team-roles)
 10. [Deployment & demo](#10-deployment--demo)
 11. [Git & team workflow](#11-git--team-workflow)
@@ -50,6 +50,8 @@ RAG is the sweet spot for this cohort: a genuine AI application where the AI is 
                               return answer + cited source chunks ─▶ React chat UI
                     └──────────────────────────────────────────────────────────┘
 ```
+
+**What's a vector, exactly?** An *embedding* turns a piece of text into a list of numbers (a vector) that captures its meaning, so texts about similar things end up close together. Retrieval works by embedding the question and finding the chunks whose vectors are *most similar* to it — typically by **cosine similarity** (the angle between two vectors). This is **semantic** search: it matches on meaning, not exact words, which is why it finds "how do I get my money back" against a chunk titled "Refund policy" — something a keyword `LIKE '%money%'` SQL query would miss. The number of values in each vector is its *dimension* (e.g. `nomic-embed-text` produces 768).
 
 The whole pipeline runs locally through **Ollama** — both the embedding model and the chat model. No accounts, no keys, no spend.
 
@@ -116,24 +118,31 @@ Apple Silicon Macs share memory between the CPU and GPU ("unified memory"), so t
 git clone <your-team-repo-url>
 cd <your-team-repo>
 
-# 2. Pull the models (one time, a few GB) — Ollama runs as a local service
-ollama pull llama3.1:8b
-ollama pull nomic-embed-text
+# 2. Make sure Ollama is running. The desktop app usually starts it; if you get
+#    "connection refused" on port 11434, start it yourself and leave it running:
+ollama serve
 
-# 3. Copy env template and fill in values
+# 3. Pull the models (one time, a few GB)
+ollama pull llama3.1:8b       # main generation model
+ollama pull llama3.2:1b       # tiny model for fast local iteration
+ollama pull nomic-embed-text  # embeddings
+
+# 4. Copy env template and fill in values
 cp .env.example .env
 
-# 4. Create the database and enable pgvector (one time)
+# 5. Create the database and enable pgvector (one time)
 createdb ragdb
+#   If `createdb` is "command not found" or you hit a permissions error, use:
+#   psql -U postgres -c "CREATE DATABASE ragdb;"
 psql ragdb -c "CREATE EXTENSION IF NOT EXISTS vector;"
 
-# 5. Start the backend (terminal 1)
+# 6. Start the backend (terminal 1)
 cd server
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 flask run                       # http://localhost:5000
 
-# 6. Start the frontend (terminal 2)
+# 7. Start the frontend (terminal 2)
 cd client
 npm install
 npm run dev                     # http://localhost:5173
@@ -163,11 +172,23 @@ Ollama serves on `11434` and Postgres on `5432` by default. You'll run the front
 │   └── tests/
 ├── docs/
 │   ├── ARCHITECTURE.md  ← your architecture diagram + decisions
-│   └── eval.md          ← your evaluation set & results
+│   ├── seed-issues.md   ← starter backlog (provided)
+│   └── eval.md          ← run-tracking template (provided; fill it in)
 └── sample-data/         ← example docs to ingest while testing (provided)
 ```
 
 > **Test data is provided.** The [`sample-data/`](./sample-data) folder has example documents (Markdown, text, and a PDF) plus a ready-made evaluation set — use them to validate your ingestion and retrieval before bringing in your own corpus.
+
+### Common setup errors
+
+| Symptom | Likely cause | Fix |
+|---------|--------------|-----|
+| `Connection refused` on `localhost:11434` | Ollama isn't running | Start it: `ollama serve` (or open the Ollama app) |
+| `type "vector" does not exist` | pgvector extension not enabled in the DB | `psql ragdb -c "CREATE EXTENSION IF NOT EXISTS vector;"` |
+| `createdb: command not found` | Postgres CLI not on your PATH | Add Postgres to PATH, or `psql -U postgres -c "CREATE DATABASE ragdb;"` |
+| `port already in use` (5000 / 5173 / 5432) | Another process is on that port | Stop it, or change the port (`flask run -p 5001`, Vite `npm run dev -- --port 5174`) |
+| `ModuleNotFoundError` / odd syntax errors at launch | Wrong Python version or venv not active | Use Python 3.11+ and activate the venv (`source .venv/bin/activate`) |
+| Ollama replies "model not found" | Model not pulled yet | `ollama pull <model>`; check with `ollama list` |
 
 ---
 
@@ -181,7 +202,7 @@ Upload lecture notes, PDFs, and slides; ask questions and get cited answers for 
 
 ### Option B — Codebase / Docs Assistant
 Ingest project documentation (or an open-source repo's docs); answer "how do I…" questions with citations to the exact section.
-*Hook:* code-snippet rendering and deep links back to the source file.
+*Hook:* code-snippet rendering and deep links to the source chunk in the document manager.
 
 ### Option C — Policy & Handbook Helper
 Ingest an employee handbook, terms of service, or benefits docs; answer policy questions with the exact clause cited.
@@ -221,9 +242,14 @@ This section is the rubric in disguise. Your **problem statement** (one paragrap
 - **Prompt-injection awareness** — you can explain the risk (a document telling the model to ignore instructions) and show one basic mitigation (clearly delimiting retrieved content in the prompt).
 - **An evaluation set** — 8–10 question/expected-answer pairs you use to sanity-check retrieval and answers before the demo (see §7).
 - **Sensible resource use** — reasonable chunk sizes and top-k; graceful handling when Ollama is slow or unavailable.
+- **Basic observability** — wrap your `generate()` call so every request logs its prompt, the retrieved chunks, the latency, and the answer (to a JSON file or a DB table). This is the home-grown version of tools like LangSmith, Langfuse, or Weights & Biases, and it's what lets you debug *why* an answer was bad instead of guessing.
 
 ### Stretch goals (only after the MVP runs)
 Streaming responses (token-by-token), conversation memory / follow-ups, hybrid search (keyword + vector), re-ranking retrieved chunks, multi-document Q&A, page-level PDF citations, an eval dashboard, a model picker that compares `llama3.1` vs `llama3.2` answers, or **containerizing the whole stack with Docker Compose** so it runs with one command.
+
+**Agentic stretch goals (a first taste of tool use).** These build directly on your RAG pipeline using Ollama's function calling, and they're the most in-demand skill on the job market right now:
+- **Router agent** — give the model two tools, `search_documents()` and `respond_from_knowledge()` (which answers from general knowledge *with a disclaimer that it's not grounded in the docs*), and let it decide per question which to call. One decision, two tools — the smallest real agent, and the lowest-lift way to show agentic thinking.
+- **Follow-up question agent** — after generating an answer, chain a second prompt that proposes 2–3 follow-up questions the user might ask next, based on what was retrieved. No new tools, just prompt chaining.
 
 ### Out of scope
 No training or fine-tuning, no agents/tool-use, no multi-modal (images/audio), no payments. (That's for the AI program.)
@@ -253,13 +279,20 @@ This project is built so you can speak to it credibly. Don't just say "I built a
 
 > **Don't start from a blank page:** [`sample-data/`](./sample-data) ships a ready-made evaluation set (with deliberate out-of-scope questions) over the provided example documents. Use it to validate your pipeline first, then build your own set for your real corpus.
 
+Record every run in `docs/eval.md` so you can see progress over time — a simple table is enough:
+
+| Run date | Chunk size | Top-k | Score (/10) | Notes |
+|----------|-----------|-------|-------------|-------|
+| 2026-07-15 | 1000 | 3 | 6 | baseline |
+| 2026-07-16 | 400 | 4 | 9 | smaller chunks fixed the retrieval misses |
+
 Showing this in your presentation — *"we changed chunk size from 1000 to 400 tokens and accuracy went from 6/10 to 9/10"* — is what separates a real AI project from a demo that happened to work once.
 
 ---
 
-## 8. Three-week timeline
+## 8. Four-week timeline
 
-~15 working days, with a hard **"get it running end-to-end early"** bias so the AI pipeline is debugged while it's cheap. Full Git ceremonies are in [`CONTRIBUTING.md`](./CONTRIBUTING.md).
+~20 working days, with a hard **"get it running end-to-end early"** bias so the AI pipeline is debugged while it's cheap. Full Git ceremonies are in [`CONTRIBUTING.md`](./CONTRIBUTING.md).
 
 ### Week 1 — Foundations & a "walking skeleton" RAG
 *Get an end-to-end slice working on one seeded document.*
@@ -267,40 +300,51 @@ Showing this in your presentation — *"we changed chunk size from 1000 to 400 t
 | Day | Focus | Outcome |
 |-----|-------|---------|
 | 1 | Kickoff, team norms, pick project/corpus, problem statement; learn the RAG flow | Repo + README started, roles assigned |
-| 2 | Design the ingestion pipeline & API; data modeling (docs, chunks, embeddings); write issues | ERD + ~15 issues on the board |
+| 2 | Design the ingestion pipeline & API; data modeling (docs, chunks, embeddings); **start from `docs/seed-issues.md`** and add your own | A backlog of ~10–15 issues on the board |
 | 3 | Scaffold Flask + React + local Postgres/pgvector; get **one document chunked and embedded** into pgvector via Ollama | Vectors land in the DB |
 | 4 | First retrieval + LLM call: question in → top-k chunks → grounded answer from Ollama | End-to-end answer works locally |
 | 5 | Wire it to a minimal React chat UI; **the app runs end-to-end locally** from the README steps; CI green | App answers a question over one seeded doc, with a citation |
 
-> **The most important milestone is end of Week 1: an app that answers one question over one document, with a citation.** Teams that defer the Ollama/vector plumbing to week three lose the demo to a config error at 11pm.
+> **The most important milestone is end of Week 1: an app that answers one question over one document, with a citation.** Teams that defer the Ollama/vector plumbing to the final week lose the demo to a config error at 11pm.
 
-### Week 2 — Core feature build
-*Real ingestion, real UI, grounding you can trust.*
+### Week 2 — Authentication & ingestion
+*Real users, real documents.*
 
 | Day | Focus | Outcome |
 |-----|-------|---------|
 | 6 | Authentication + per-user document scoping | Users register/login; see only their docs |
 | 7 | Real upload + ingestion (PDF parsing, chunking strategy, batch embedding) | Users upload their own docs end-to-end |
-| 8 | Citations in the UI + "I don't know" on low-relevance retrieval | Answers show sources; out-of-scope questions refused |
-| 9 | Chat UX: history, loading states, error handling, responsive layout | App feels usable, not just functional |
-| 10 | **Mid-project demo + feedback**; build the 8–10 question eval set; mid-point retro | Feedback logged as issues; eval baseline captured |
+| 8 | Ingestion robustness: multiple file types, larger docs, error handling | Ingestion survives real, messy inputs |
+| 9 | Chat UX: history, loading states, error states, responsive layout | App feels usable, not just functional |
+| 10 | Internal demo + feedback; backlog grooming; retro | Feedback logged as issues |
 
-### Week 3 — Polish, harden, present
+### Week 3 — Citations, evaluation, tuning & testing
+*Make the answers trustworthy — and prove it.*
+
+| Day | Focus | Outcome |
+|-----|-------|---------|
+| 11 | Citations in the UI + "I don't know" on low-relevance retrieval | Answers show sources; out-of-scope questions refused |
+| 12 | Build the 8–10 question eval set (start from `sample-data/`); capture a baseline score | Baseline recorded in `docs/eval.md` |
+| 13 | Tune retrieval/answers (chunk size, top-k, prompt); re-run the eval set | Measurable bump on the eval set |
+| 14 | Testing pass (backend + a few frontend tests); fix the top bugs | Tests green in CI |
+| 15 | Add basic observability logging; verify secrets/config handling; **mid-project demo** | `generate()` logs prompt/chunks/latency/answer; no leaked secrets |
+
+### Week 4 — Polish, document & present
 *Stop adding, start finishing.*
 
 | Day | Focus | Outcome |
 |-----|-------|---------|
-| 11 | Improve retrieval/answer quality with the eval set (tune chunk size, top-k, prompt) or a stretch goal | Measurable bump on the eval set |
-| 12 | Testing pass + fix top bugs; verify config/secret handling | Tests green in CI; no leaked secrets |
-| 13 | **Feature freeze** EOD; finish README, architecture diagram, screenshots, **demo recording**, model rationale | Docs + show-your-work artifacts done; no new features after this |
-| 14 | Build slides, rehearse the demo on the running app (including the "I don't know" moment) | Dry-run done, timing under 10 min |
-| 15 | **Presentations + final retro** | Demos delivered; retros written up |
+| 16 | README polish + model rationale; annotated screenshots | README is accurate on a fresh checkout |
+| 17 | Architecture diagram (ingestion + query paths) | Diagram committed to `docs/ARCHITECTURE.md` |
+| 18 | Record the demo (60–90s GIF or video) | Show-your-work artifacts committed |
+| 19 | **Feature freeze** EOD; build slides; rehearse on the running app (including the "I don't know" moment) | Dry-run done, timing under 10 min |
+| 20 | **Presentations + final retro** | Demos delivered; retros written up |
 
 ---
 
 ## 9. Team roles
 
-Rotate these weekly so one person doesn't own all the Git/setup work:
+Rotate these at the **start of each week — all four hats at once** — so that over the four weeks everyone holds a different role and nobody owns all the Git/setup work. Post the current week's assignments at the top of your board:
 - **Scrum lead** — runs standup, keeps the board honest.
 - **Repo/DevOps owner** — guards `main`, owns CI and keeps the README setup steps accurate on a fresh checkout.
 - **Frontend lead** — owns the chat/upload UI and responsive layout.
